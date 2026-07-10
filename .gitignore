@@ -109,3 +109,4 @@ uv.lock
 
 docs/*.pdf
 docs/design-cn.md
+docker-compose.override.yml
