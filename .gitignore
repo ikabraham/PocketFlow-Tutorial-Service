@@ -18,6 +18,8 @@ __pycache__/
 .env.development
 .env.test
 .env.production
+output/
+data/
 
 # Python virtual environments
 .venv/

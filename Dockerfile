@@ -1,13 +1,25 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
-# update packages, install git and remove cache
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+# git is needed at runtime: main.py clones the repo being analyzed.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir fastapi uvicorn redis
 
 COPY . .
 
-ENTRYPOINT ["python", "main.py"]
+RUN useradd -m -u 1000 app && mkdir -p /app/output /app/data && chown -R app /app
+USER app
+
+ENV OUTPUT_ROOT=/app/output \
+    REGISTRY_FILE=/app/data/jobs.json
+
+EXPOSE 8000
+
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
+
