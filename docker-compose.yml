@@ -6,12 +6,13 @@ services:
     environment:
       REDIS_URL: redis://redis:6379/0
     volumes:
-      - output:/app/output
+      - /data/tutorial/output:/app/output
       - data:/app/data
+    ports: 
+      - "127.0.0.1:8009:8000"
     depends_on:
       redis:
         condition: service_healthy
-    # No host port. Only nginx reaches it, over the internal network.
 
   worker:
     build: .
@@ -21,7 +22,7 @@ services:
     environment:
       REDIS_URL: redis://redis:6379/0
     volumes:
-      - output:/app/output
+      - /data/tutorial/output:/app/output
       - data:/app/data
     depends_on:
       redis:
@@ -39,18 +40,6 @@ services:
       timeout: 3s
       retries: 5
 
-  nginx:
-    image: nginx:alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - output:/srv/tutorials:ro     # read-only: nginx can never write
-    depends_on:
-      - api
-
 volumes:
-  output:
   data:
   redis:

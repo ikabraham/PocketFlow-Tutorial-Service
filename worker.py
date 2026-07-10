@@ -23,8 +23,7 @@ QUEUE_KEY = "tutorial:queue"
 JOB_TIMEOUT = int(os.environ.get("JOB_TIMEOUT", "3600"))  # 1 hour
 REPO_ROOT = Path(__file__).parent.resolve()
 
-r = redis.from_url(REDIS_URL, decode_responses=True)
-
+r = redis.from_url(REDIS_URL, decode_responses=True, socket_timeout=60)
 
 def log(msg: str) -> None:
     print(f"[worker] {msg}", flush=True)
@@ -180,8 +179,8 @@ def main() -> None:
     while True:
         try:
             item = r.blpop(QUEUE_KEY, timeout=30)
-        except redis.ConnectionError as e:
-            log(f"redis unreachable: {e}; retrying in 5s")
+        except (redis.ConnectionError, redis.TimeoutError) as e:
+            log(f"redis: {type(e).__name__}: {e}; retrying in 5s")
             time.sleep(5)
             continue
 
