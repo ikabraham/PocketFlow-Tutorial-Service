@@ -33,7 +33,7 @@ app = FastAPI(
 
 class GenerateRequest(BaseModel):
     repo_url: str
-    include: list[str] = Field(default_factory=lambda: ["*.py"])
+    include: list[str] = Field(default_factory=list)
     exclude: list[str] = Field(default_factory=list)
     max_size: int = Field(default=100_000, ge=1_000, le=1_000_000)
     language: str = "english"
