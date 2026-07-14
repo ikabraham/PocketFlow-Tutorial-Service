@@ -20,6 +20,16 @@ import registry
 REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
 QUEUE_KEY = "tutorial:queue"
 
+# Optional per-request model selection.
+# ALLOWED_MODELS is a comma-separated allow-list of Ollama model names that a
+# caller may request (e.g. "gemma4:latest,qwen2.5-coder:latest"). A request may
+# only pick from this list; anything else is rejected. When a request omits
+# `model`, the worker falls back to the host default (OLLAMA_MODEL in .env), so
+# leaving ALLOWED_MODELS empty keeps today's behaviour exactly.
+ALLOWED_MODELS = [
+    m.strip() for m in os.environ.get("ALLOWED_MODELS", "").split(",") if m.strip()
+]
+
 r = redis.from_url(REDIS_URL, decode_responses=True)
 
 app = FastAPI(
@@ -39,6 +49,7 @@ class GenerateRequest(BaseModel):
     language: str = "english"
     max_abstractions: int = Field(default=10, ge=1, le=20)
     on_existing: str = "ignore"  # "ignore" | "update"
+    model: str | None = None  # optional Ollama model; must be in ALLOWED_MODELS
 
     @field_validator("repo_url")
     @classmethod
@@ -73,6 +84,23 @@ class GenerateRequest(BaseModel):
     def _on_existing(cls, v: str) -> str:
         if v not in ("ignore", "update"):
             raise ValueError("on_existing must be 'ignore' or 'update'")
+        return v
+
+    @field_validator("model")
+    @classmethod
+    def _model(cls, v: str | None) -> str | None:
+        # None => omitted => worker uses the host default (OLLAMA_MODEL).
+        if v is None or v == "":
+            return None
+        if not ALLOWED_MODELS:
+            raise ValueError(
+                "Per-request model selection is disabled on this host "
+                "(ALLOWED_MODELS is empty)."
+            )
+        if v not in ALLOWED_MODELS:
+            raise ValueError(
+                "model must be one of: " + ", ".join(ALLOWED_MODELS)
+            )
         return v
 
 
@@ -129,6 +157,10 @@ def create_job(req: GenerateRequest):
         "language": req.language,
         "max_abstractions": req.max_abstractions,
     }
+    # Only include model when the caller picked one; otherwise the worker uses
+    # its host default (OLLAMA_MODEL), preserving today's behaviour.
+    if req.model:
+        job["model"] = req.model
 
     entry = registry.upsert(
         req.repo_url,
@@ -137,6 +169,7 @@ def create_job(req: GenerateRequest):
         error=None,
         language=req.language,
         max_abstractions=req.max_abstractions,
+        model=req.model,  # None when omitted (worker uses host default)
     )
 
     try:
@@ -152,6 +185,16 @@ def create_job(req: GenerateRequest):
             "status is 'complete', then fetch tutorial_url."
         ),
     }
+
+
+@app.get("/models")
+def list_models():
+    """The models a caller may request via POST /jobs (from ALLOWED_MODELS).
+
+    Empty list => per-request selection is disabled and every job uses the host
+    default (OLLAMA_MODEL). WordPress/MCP can call this to populate a dropdown.
+    """
+    return {"models": ALLOWED_MODELS, "default": os.environ.get("OLLAMA_MODEL")}
 
 
 @app.get("/jobs")

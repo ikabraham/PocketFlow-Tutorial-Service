@@ -82,6 +82,16 @@ def run_job(job: dict) -> None:
         return
 
     env = os.environ.copy()
+    # Per-job model override. server.py only puts "model" on the job when the
+    # caller picked one from the allow-list; otherwise it's absent and the CLI
+    # uses whatever OLLAMA_MODEL is already in the environment (host default).
+    # main.py selects its model from OLLAMA_MODEL, so overriding that env var is
+    # all that's needed -- no --model flag on main.py required.
+    model = job.get("model")
+    if model:
+        env["OLLAMA_MODEL"] = model
+        log(f"model override: {model}")
+
     cmd = build_command(job)
     log(f"exec: {' '.join(cmd)}")
 
