@@ -69,6 +69,9 @@ def run_job(job: dict) -> None:
         status="running",
         progress="cloning repository",
         error=None,
+        # Record the model actually used, including the host default when the
+        # caller didn't pick one, so the registry never mislabels a run.
+        model=job.get("model") or os.environ.get("OLLAMA_MODEL"),
         started_at=registry._now(),
     )
 
@@ -173,6 +176,9 @@ def run_job(job: dict) -> None:
         status="complete",
         progress=None,
         error=None,
+        # upsert merges, so a previous failure's traceback would linger on a
+        # later success unless we explicitly clear it.
+        log_tail=None,
         files=registry.output_files(slug),
         duration_seconds=elapsed,
         completed_at=registry._now(),
