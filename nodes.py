@@ -687,7 +687,7 @@ Complete Tutorial Structure{structure_note}:
 {item["full_chapter_listing"]}
 
 Context from previous chapters{prev_summary_note}:
-{previous_chapters_summary if previous_chapters_summary else "This is the first chapter."}
+{previous_chapters_summary if previous_chapters_summary else "NONE. This is the very first chapter. There is no previous chapter. Do NOT reference, summarize, or transition from any earlier chapter, and do NOT open with phrases like 'Welcome back' or 'In the last chapter'."}
 
 Relevant Code Snippets (Code itself remains unchanged):
 {file_context_str if file_context_str else "No specific code snippets provided for this abstraction."}
@@ -695,7 +695,7 @@ Relevant Code Snippets (Code itself remains unchanged):
 Instructions for the chapter (Generate content in {language.capitalize()} unless specified otherwise):
 - Start with a clear heading (e.g., `# Chapter {chapter_num}: {abstraction_name}`). Use the provided concept name.
 
-- If this is not the first chapter, begin with a brief transition from the previous chapter{instruction_lang_note}, referencing it with a proper Markdown link using its name{link_lang_note}.
+{"- Begin with a brief transition from the previous chapter" + instruction_lang_note + ", referencing it with a proper Markdown link using its name" + link_lang_note + "." if previous_chapters_summary else "- This is the first chapter, so do NOT include any transition from a previous chapter and do NOT reference earlier chapters in any way."}
 
 - Begin with a high-level motivation explaining what problem this abstraction solves{instruction_lang_note}. Start with a central use case as a concrete example. The whole chapter should guide the reader to understand how to solve this use case. Make it very minimal and friendly to beginners.
 
